@@ -1388,7 +1388,7 @@ class MusicBot(discord.Client):
 		Clears the playlist.
 		"""
 		
-		content = message.content.trim() # :type: string
+		content = message.content.strip() # :type: string
 		# If no argument, clear the whole list.
 		if content == "":
 			player.playlist.clear()
