@@ -1398,25 +1398,25 @@ class MusicBot(discord.Client):
 			# Generates closure for evaluating the parameter
 			def make_func_in_range(param: str):
 				# Remove all spaces and split by comma
-				ranges = param.replace(" ", "").split(",")
+				range_params = param.replace(" ", "").split(",")
 				
 				# Prepare the index list
-				indices = []
+				range_entries = []
 				
-				for entry in ranges:
+				for entry in range_params:
 					hyphen_index = entry.find("-")
 					if hyphen_index == -1:
 						# Single entry
-						indices.append(int(entry))
+						min_val = max_val = int(entry)
 					else:
 						# Range entry
-						min = entry[:hyphen_index]
-						max = entry[hyphen_index+1:]
-						for i in range(int(min), int(max)+1):
-							indices.append(i)
+						min_val = int(entry[:hyphen_index])
+						max_val = int(entry[hyphen_index + 1:])
+					
+					range_entries.append(range(min_val, max_val + 1))
 				
 				def in_range(num):
-					return num in indices
+					return any(num in range_entry for range_entry in range_entries)
 				
 				return in_range
 				
@@ -1425,7 +1425,7 @@ class MusicBot(discord.Client):
 				removed_songs = player.playlist.delete(make_func_in_range(content))
 				output = "Removed songs:"
 				for song in removed_songs:
-					output += "\n**%s**" % song.title
+					output += "\n**{}** added by **{}**".format(song.title, song.meta['author'].name).strip()
 				
 			except ValueError:
 				return Response(
