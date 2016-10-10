@@ -1380,7 +1380,7 @@ class MusicBot(discord.Client):
 		await self.safe_delete_message(hand, quiet=True)
 		return Response(":ok_hand:", delete_after=15)
 
-	async def cmd_clear(self, player, author, message):
+	async def cmd_clear(self, player, author, index_str=None):
 		"""
 		Usage:
 			{command_prefix}clear
@@ -1388,20 +1388,22 @@ class MusicBot(discord.Client):
 		Clears the playlist.
 		"""
 		
-		content = message.content.trim() # :type: string
+		# content = message.content.strip() # :type: string
 		# If no argument, clear the whole list.
-		if content == "":
+		if not index_str:
 			player.playlist.clear()
 			return Response(':put_litter_in_its_place:', delete_after=20)
 		
 		else:
 			# Try to convert to integer
 			try:
-				index = int(content)
+				index = int(index_str)
 				player.playlist.delete(index)
 				
 			except ValueError:
 				return Response("Invalid parameters. Use `!clear` or `!clear <index>`.")
+			
+				return Response(':put_litter_in_its_place:', delete_after=20)
 
 	async def cmd_skip(self, player, channel, author, message, permissions, voice_channel):
 		"""
