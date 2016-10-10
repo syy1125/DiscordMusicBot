@@ -31,17 +31,20 @@ class Playlist(EventEmitter):
 	def clear(self):
 		self.entries.clear()
 		
-	def delete(self, index):
+	def delete(self, func_in_range):
 		new_entries = deque()
+		removed_songs = []
 		
 		for i, item in enumerate(self.entries):
 			# Skip the one to remove
-			if i == index-1:
+			if func_in_range(i):
+				removed_songs.append(item)
 				continue
 			new_entries.append(item)
 		
 		# Set the queue to the new queue
 		self.entries = new_entries
+		return removed_songs
 
 	async def add_entry(self, song_url, **meta):
 		"""

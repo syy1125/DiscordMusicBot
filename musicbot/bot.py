@@ -1395,13 +1395,42 @@ class MusicBot(discord.Client):
 			return Response(':put_litter_in_its_place:', delete_after=20)
 		
 		else:
+			# Generates closure for evaluating the parameter
+			def make_func_in_range(param: str):
+				# Remove all spaces and split by comma
+				ranges = param.replace(" ", "").split(",")
+				
+				# Prepare the index list
+				indices = []
+				
+				for entry in ranges:
+					hyphen_index = entry.find("-")
+					if hyphen_index == -1:
+						# Single entry
+						indices.append(int(entry))
+					else:
+						# Range entry
+						min = entry[:hyphen_index]
+						max = entry[hyphen_index+1:]
+						for i in range(int(min), int(max)+1):
+							indices.append(i)
+				
+				def in_range(num):
+					return num in indices
+				
+				return in_range
+				
 			# Try to convert to integer
 			try:
-				index = int(content)
-				player.playlist.delete(index)
+				removed_songs = player.playlist.delete(make_func_in_range(content))
+				output = "Removed songs:"
+				for song in removed_songs:
+					output += "\n**%s**" % song.title
 				
 			except ValueError:
-				return Response("Invalid parameters. Use `!clear` or `!clear <index>`.")
+				return Response(
+					'''Invalid parameters. Use `!clear` or `!clear <index>`.\n
+A list of comma-separated indices/ranges work as well; for example, `!clear 1, 3, 5` or `!clear 2-4, 7`''')
 
 	async def cmd_skip(self, player, channel, author, message, permissions, voice_channel):
 		"""
