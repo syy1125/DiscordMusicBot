@@ -1388,20 +1388,49 @@ class MusicBot(discord.Client):
 		Clears the playlist.
 		"""
 		
-		content = message.content.trim() # :type: string
+		content = message.content.strip() # :type: string
 		# If no argument, clear the whole list.
 		if content == "":
 			player.playlist.clear()
 			return Response(':put_litter_in_its_place:', delete_after=20)
 		
 		else:
+			# Generates closure for evaluating the parameter
+			def make_func_in_range(param: str):
+				# Remove all spaces and split by comma
+				range_params = param.replace(" ", "").split(",")
+				
+				# Prepare the index list
+				range_entries = []
+				
+				for entry in range_params:
+					hyphen_index = entry.find("-")
+					if hyphen_index == -1:
+						# Single entry
+						min_val = max_val = int(entry)
+					else:
+						# Range entry
+						min_val = int(entry[:hyphen_index])
+						max_val = int(entry[hyphen_index + 1:])
+					
+					range_entries.append(range(min_val, max_val + 1))
+				
+				def in_range(num):
+					return any(num in range_entry for range_entry in range_entries)
+				
+				return in_range
+				
 			# Try to convert to integer
 			try:
-				index = int(content)
-				player.playlist.delete(index)
+				removed_songs = player.playlist.delete(make_func_in_range(content))
+				output = "Removed songs:"
+				for song in removed_songs:
+					output += "\n**{}** added by **{}**".format(song.title, song.meta['author'].name).strip()
 				
 			except ValueError:
-				return Response("Invalid parameters. Use `!clear` or `!clear <index>`.")
+				return Response(
+					'''Invalid parameters. Use `!clear` or `!clear <index>`.\n
+A list of comma-separated indices/ranges work as well; for example, `!clear 1, 3, 5` or `!clear 2-4, 7`''')
 
 	async def cmd_skip(self, player, channel, author, message, permissions, voice_channel):
 		"""
