@@ -1388,8 +1388,7 @@ class MusicBot(discord.Client):
 		Clears the playlist.
 		"""
 		
-		# content = message.content.strip() # :type: string
-		# If no argument, clear the whole list.
+# If no argument, clear the whole list.
 		if not index_str:
 			player.playlist.clear()
 			return Response(':put_litter_in_its_place:', delete_after=20)
@@ -1399,11 +1398,10 @@ class MusicBot(discord.Client):
 			try:
 				index = int(index_str)
 				player.playlist.delete(index)
-				
-			except ValueError:
-				return Response("Invalid parameters. Use `!clear` or `!clear <index>`.")
-			
 				return Response(':put_litter_in_its_place:', delete_after=20)
+
+			except ValueError:
+				return Response("Invalid parameters. Use `!clear` or `!clear <index>`.  Content: " + content)
 
 	async def cmd_skip(self, player, channel, author, message, permissions, voice_channel):
 		"""
