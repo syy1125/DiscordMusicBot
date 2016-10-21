@@ -1428,12 +1428,12 @@ class MusicBot(discord.Client):
 				
 				except ValueError:
 					# Check if the parameter is in quotes
-					if param.startswith(prefix='"') and param.endswith(suffix='"'):
+					if param.startswith('"') and param.endswith('"'):
 						# Strip quotes
 						search = param[1:len(param)-1]
 						
 						def in_range(index, item):
-							return item.get('title', "Untitled").lower().contains(search.lower())
+							return (search.lower() in item.get('title', "Untitled").lower()) if item else False
 						
 						return in_range
 					
