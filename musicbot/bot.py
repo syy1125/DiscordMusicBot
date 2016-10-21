@@ -1433,7 +1433,7 @@ class MusicBot(discord.Client):
 						search = param[1:len(param)-1]
 						
 						def in_range(index, item):
-							return (search.lower() in item.get('title', "Untitled").lower()) if item else False
+							return (search.lower() in item.title.lower()) if item else False
 						
 						return in_range
 					
@@ -1445,13 +1445,13 @@ class MusicBot(discord.Client):
 				removed_songs = player.playlist.delete(make_func_in_range(index_str))
 				output = "Removed songs: "
 				for song in removed_songs:
-					output += "\n**{}** added by **{}**".format(song.get('title', "Untitled"), song.meta['author'].name).strip()
+					output += "\n**{}** added by **{}**".format(song.title, song.meta['author'].name).strip()
 				return Response(output, delete_after=50)
 				
 			except:
 				return Response(
 					'''Unexpected error when executing command. Use `!clear` or `!clear <index>`.\n
-A list of comma-separated indices/ranges work as well; for example, `!clear 1, 3, 5` or `!clear 2-4, 7`\n
+A list of comma-separated indices/ranges work as well; for example, `!clear 1,3,5` or `!clear 2-4,7`\n
 Error details: ```{}```'''.format(sys.exc_info()[0]))
 
 	async def cmd_skip(self, player, channel, author, message, permissions, voice_channel):
