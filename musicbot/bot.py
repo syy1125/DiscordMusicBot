@@ -1590,7 +1590,7 @@ A list of comma-separated indices/ranges work as well; for example, `!clear 1, 3
 				'There are no songs queued! Queue something with {}play.'.format(self.config.command_prefix))
 
 		message = '\n'.join(lines)
-		return Response(message, delete_after=30)
+		return Response(message)
 
 	async def cmd_clean(self, message, channel, server, author, search_range=50):
 		"""
