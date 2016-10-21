@@ -1445,7 +1445,7 @@ class MusicBot(discord.Client):
 				removed_songs = player.playlist.delete(make_func_in_range(index_str))
 				output = "Removed songs: "
 				for song in removed_songs:
-					output += "\n**{}** added by **{}**".format(song.title, song.meta['author'].name).strip()
+					output += "\n**{}** added by **{}**".format(song.get('title', "Untitled"), song.meta['author'].name).strip()
 				return Response(output, delete_after=50)
 				
 			except:
