@@ -1412,7 +1412,7 @@ class MusicBot(discord.Client):
 						min_val = int(entry[:hyphen_index])
 						max_val = int(entry[hyphen_index + 1:])
 					
-					range_entries.append(range(min_val, max_val + 1))
+					range_entries.append(range(min_val - 1, max_val))
 				
 				def in_range(num):
 					return any(num in range_entry for range_entry in range_entries)
