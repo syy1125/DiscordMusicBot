@@ -1380,7 +1380,7 @@ class MusicBot(discord.Client):
 		await self.safe_delete_message(hand, quiet=True)
 		return Response(":ok_hand:", delete_after=15)
 
-	async def cmd_clear(self, player, author, message):
+	async def cmd_clear(self, player, author, index_str=None):
 		"""
 		Usage:
 			{command_prefix}clear
@@ -1388,9 +1388,8 @@ class MusicBot(discord.Client):
 		Clears the playlist.
 		"""
 		
-		content = message.content.strip() # :type: string
 		# If no argument, clear the whole list.
-		if content == "":
+		if not index_str:
 			player.playlist.clear()
 			return Response(':put_litter_in_its_place:', delete_after=20)
 		
@@ -1422,10 +1421,11 @@ class MusicBot(discord.Client):
 				
 			# Try to convert to integer
 			try:
-				removed_songs = player.playlist.delete(make_func_in_range(content))
+				removed_songs = player.playlist.delete(make_func_in_range(index_str))
 				output = "Removed songs:"
 				for song in removed_songs:
 					output += "\n**{}** added by **{}**".format(song.title, song.meta['author'].name).strip()
+				return Response(output, delete_after=20)
 				
 			except ValueError:
 				return Response(
