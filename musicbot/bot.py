@@ -1421,7 +1421,7 @@ class MusicBot(discord.Client):
 						
 						range_entries.append(range(min_val - 1, max_val))
 				
-					def in_range(index, item):
+					def in_range(index, item = None):
 						return any(index in range_entry for range_entry in range_entries)
 				
 					return in_range
@@ -1451,7 +1451,8 @@ class MusicBot(discord.Client):
 			except:
 				return Response(
 					'''Unexpected error when executing command. Use `!clear` or `!clear <index>`.\n
-A list of comma-separated indices/ranges work as well; for example, `!clear 1, 3, 5` or `!clear 2-4, 7`''')
+A list of comma-separated indices/ranges work as well; for example, `!clear 1, 3, 5` or `!clear 2-4, 7`\n
+Error details: ```{}```'''.format(sys.exc_info()[0]))
 
 	async def cmd_skip(self, player, channel, author, message, permissions, voice_channel):
 		"""
