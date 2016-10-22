@@ -1380,7 +1380,7 @@ class MusicBot(discord.Client):
 		await self.safe_delete_message(hand, quiet=True)
 		return Response(":ok_hand:", delete_after=15)
 
-	async def cmd_clear(self, player, author, index_str=None):
+	async def cmd_clear(self, player, author, message, index_str = None):
 		"""
 		Usage:
 			{command_prefix}clear
@@ -1388,12 +1388,15 @@ class MusicBot(discord.Client):
 		Clears the playlist.
 		"""
 		
+		message_content = message.content.strip()
+		args = ' '.join(message_content.split(' ')[1:])
+		
 		# If no argument, clear the whole list.
 		if not index_str:
 			player.playlist.clear()
 			return Response('Clear without parameters will soon be deprecated. Use `!clear all` instead.\n:put_litter_in_its_place:', delete_after=30)
 		
-		elif index_str == "all":
+		elif args == "all":
 			player.playlist.clear()
 			return Response(':put_litter_in_its_place:', delete_after=30)
 		
@@ -1442,16 +1445,17 @@ class MusicBot(discord.Client):
 				
 			# Try to convert to integer
 			try:
-				removed_songs = player.playlist.delete(make_func_in_range(index_str))
-				output = "Removed songs: "
+				removed_songs = player.playlist.delete(make_func_in_range(args))
+				output = '''Removed songs:'''
 				for song in removed_songs:
-					output += "\n**{}** added by **{}**".format(song.title, song.meta['author'].name).strip()
+					output += '''
+**''' + song.title + '''** added by **''' + song.meta['author'].name + '''**'''
 				return Response(output, delete_after=50)
 				
 			except:
 				return Response(
-					'''Unexpected error when executing command. Use `!clear` or `!clear <index>`.\n
-A list of comma-separated indices/ranges work as well; for example, `!clear 1,3,5` or `!clear 2-4,7`\n
+					'''Unexpected error when executing command. Use `!clear` or `!clear <index>`.
+A list of comma-separated indices/ranges work as well; for example, `!clear 1,3,5` or `!clear 2-4,7`
 Error details: ```{}```'''.format(sys.exc_info()[0]))
 
 	async def cmd_skip(self, player, channel, author, message, permissions, voice_channel):
