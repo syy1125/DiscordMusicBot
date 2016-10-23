@@ -37,7 +37,7 @@ class Playlist(EventEmitter):
 		
 		for i, item in enumerate(self.entries):
 			# Skip the one to remove
-			if func_in_range(i, item):
+			if func_should_delete(i, item):
 				removed_songs.append(item)
 				continue
 			new_entries.append(item)
