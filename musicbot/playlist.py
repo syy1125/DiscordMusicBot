@@ -31,7 +31,7 @@ class Playlist(EventEmitter):
 	def clear(self):
 		self.entries.clear()
 		
-	def delete(self, func_in_range):
+	def delete(self, func_should_delete):
 		new_entries = deque()
 		removed_songs = []
 		

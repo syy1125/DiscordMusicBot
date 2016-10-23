@@ -1378,7 +1378,7 @@ class MusicBot(discord.Client):
 		await self.safe_delete_message(hand, quiet=True)
 		return Response(":ok_hand:", delete_after=15)
 	
-	async def cmd_clear(self, player, author, message, index_str=None):
+	async def cmd_clear(self, player, author, user_mentions, message, index_str=None):
 		"""
 		Usage:
 			{command_prefix}clear
@@ -1401,47 +1401,55 @@ class MusicBot(discord.Client):
 		else:
 			# Generates closure for evaluating the parameter
 			def make_func_in_range(param: str):
-				try:
-					# See if this is an index range
+				if user_mentions:
+					# Delete by user
+					def should_delete(index, item):
+						return any((item.meta.get(author, None) == mention) for mention in user_mentions)
 					
-					# Remove all spaces and split by comma
-					range_params = param.replace(" ", "").split(",")
+					return should_delete
 					
-					# Prepare the index list
-					range_entries = []
+				else:
+					try:
+						# See if this is an index range
+						
+						# Remove all spaces and split by comma
+						range_params = param.replace(" ", "").split(",")
+						
+						# Prepare the index list
+						range_entries = []
+						
+						for entry in range_params:
+							hyphen_index = entry.find("-")
+							if hyphen_index == -1:
+								# Single entry
+								min_val = max_val = int(entry)
+							else:
+								# Range entry
+								min_val = int(entry[:hyphen_index])
+								max_val = int(entry[hyphen_index + 1:])
+							
+							range_entries.append(range(min_val - 1, max_val))
+						
+						def should_delete(index, item=None):
+							return any(index in range_entry for range_entry in range_entries)
+						
+						return should_delete
 					
-					for entry in range_params:
-						hyphen_index = entry.find("-")
-						if hyphen_index == -1:
-							# Single entry
-							min_val = max_val = int(entry)
+					except ValueError:
+						# Check if the parameter is in quotes
+						if param.startswith('"') and param.endswith('"'):
+							# Strip quotes
+							search = param[1:len(param) - 1]
+							
+							def should_delete(index, item):
+								return (search.lower() in item.title.lower()) if item else False
+							
+							return should_delete
+						
 						else:
-							# Range entry
-							min_val = int(entry[:hyphen_index])
-							max_val = int(entry[hyphen_index + 1:])
-						
-						range_entries.append(range(min_val - 1, max_val))
-					
-					def in_range(index, item=None):
-						return any(index in range_entry for range_entry in range_entries)
-					
-					return in_range
-				
-				except ValueError:
-					# Check if the parameter is in quotes
-					if param.startswith('"') and param.endswith('"'):
-						# Strip quotes
-						search = param[1:len(param) - 1]
-						
-						def in_range(index, item):
-							return (search.lower() in item.title.lower()) if item else False
-						
-						return in_range
-					
-					else:
-						raise AssertionError
+							raise AssertionError
 			
-			# Try to convert to integer
+			# Try to parse parameters
 			try:
 				removed_songs = player.playlist.delete(make_func_in_range(args))
 				output = '''Removed songs:'''
