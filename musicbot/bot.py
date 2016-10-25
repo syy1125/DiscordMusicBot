@@ -81,6 +81,7 @@ class MusicBot(discord.Client):
 		self.exit_signal = None
 		self.init_ok = False
 		self.cached_client_id = None
+		self.last_error = None
 		
 		if not self.autoplaylist:
 			print("Warning: Autoplaylist is empty, disabling.")
@@ -1459,10 +1460,20 @@ class MusicBot(discord.Client):
 				return Response(output, delete_after=50)
 			
 			except:
+				self.last_error = sys.exc_info()
 				return Response(
-					('''Unexpected error when executing command. Use `%(cmd)sclear` or `%(cmd)sclear <index>`.
-A list of comma-separated indices/ranges work as well; for example, `%(cmd)sclear 1,3,5` or `%(cmd)sclear 2-4,7`
-Error details: ```{}```''' % {'cmd': self.config.command_prefix}).format(sys.exc_info()[0]))
+					('''Unexpected error when executing command.\nTo clear the entire playlist, use `%(cmd)sclear all`.
+To clear songs at certain indices, use `%(cmd)sclear <index>`. Examples: `%(cmd)sclear 1`, `%(cmd)sclear 3-5, 9, 13`
+To clear songs whose titles contain certain strings, use `%(cmd)sclear "<string>"`; for example, `%(cmd)sclear "xcom"`.\nTo clear all songs added by a certain user, mention that user in the clear command: `%(cmd)sclear <@mention>`
+To view the error that occurred, use `%(cmd)slasterror`.''' % {'cmd': self.config.command_prefix}))
+	
+	async def cmd_lasterror(self):
+		if self.last_error:
+			output = Response('\n'.join(self.last_error))
+			self.last_error = None
+			return output
+		else:
+			return Response("No errors detected.")
 	
 	async def cmd_skip(self, player, channel, author, message, permissions, voice_channel):
 		"""
