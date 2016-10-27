@@ -278,6 +278,14 @@ class Playlist(EventEmitter):
 
 		return datetime.timedelta(seconds=estimated_time)
 
+	async def estimate_total_time(self, player):
+		estimated_time = sum(song.duration for song in self.entries)
+		
+		if not player.is_stopped and player.current_entry:
+			estimated_time += player.current_entry.duration - player.progress
+
+		return datetime.timedelta(seconds=estimated_time)
+
 	def count_for_user(self, user):
 		return sum(1 for e in self.entries if e.meta.get('author', None) == user)
 
