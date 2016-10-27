@@ -1402,10 +1402,10 @@ class MusicBot(discord.Client):
 					player.playlist._add_entry(entry)
 				self.last_cleared = None
 			
-				return Response('Restored songs cleared last time.')
+				return Response('Restored songs cleared last time.', delete_after=20)
 			
 			else:
-				return Response('No songs to restore.')
+				return Response('No songs to restore.', delete_after=20)
 						
 		else:
 			# Generates closure for evaluating the parameter
@@ -1484,7 +1484,7 @@ To view the error that occurred, use `%(cmd)slasterror`.''' % {'cmd': self.confi
 	
 	async def cmd_lasterror(self):
 		if self.last_error:
-			output = Response(self.last_error)
+			output = Response(self.last_error, delete_after=40)
 			self.last_error = None
 			return output
 		else:
@@ -1621,10 +1621,10 @@ To view the error that occurred, use `%(cmd)slasterror`.''' % {'cmd': self.confi
 			if player.current_entry.meta.get('channel', False) and player.current_entry.meta.get('author', False):
 				lines.append("Now Playing: **%s** added by **%s** %s\n" % (
 					player.current_entry.title, player.current_entry.meta['author'].name, prog_str))
-				lines.append("Estimated playlist length: %s" % str(await player.playlist.estimate_time_until(len(player.playlist.entries), player)))
+				lines.append("Estimated playlist length: %s" % str(await player.playlist.estimate_total_time(player)))
 			else:
 				lines.append("Now Playing: **%s** %s\n" % (player.current_entry.title, prog_str))
-				lines.append("Estimated playlist length: %s" % str(await player.playlist.estimate_time_until(len(player.playlist.entries), player)))
+				lines.append("Estimated playlist length: %s" % str(await player.playlist.estimate_total_time(player)))
 		
 		for i, item in enumerate(player.playlist, 1):
 			if item.meta.get('channel', False) and item.meta.get('author', False):
