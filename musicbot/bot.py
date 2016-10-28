@@ -1380,6 +1380,41 @@ class MusicBot(discord.Client):
 		await self.safe_delete_message(hand, quiet=True)
 		return Response(":ok_hand:", delete_after=15)
 	
+	async def cmd_move(self, player, message):
+		arguments = message.content.strip().split(' ')[1:]
+		
+		# Argument length check
+		if len(arguments) < 2:
+			return Response('Move command requires 2 arguments.\nUse `%smove <from> <to>` to move a song at index `<from>` to index `<to>`\n' % self.config.command_prefix
+							+ 'You can also move the song to `first`, `last`, `top`, `bottom`, `start`, or `end`, which will move the selected song to the first or last position on the playlist.')
+		
+		from_index = arguments[0]
+		to_index = arguments[1]
+		
+		try:
+			from_index = int(from_index) - 1
+			
+			# Allow moving the song to "first", "top", "last", or "bottom"
+			if to_index.lower() in ["first", "top", "start"]:
+				to_index = 0
+			elif to_index.lower() in ["last", "bottom", "end"]:
+				to_index = len(player.playlist.entries) - 1
+			else:
+				to_index = int(to_index) - 1
+			
+			# Index here must be non-negative.
+			if from_index < 0 or to_index < 0:
+				return Response("Negative indices are not supported.")
+			
+			moved_song = player.playlist.move(from_index, to_index)
+			
+			return Response('Moved **%s** to position %d in the queue.' % (moved_song.title, (to_index + 1)))
+		
+		except:
+			return Response(
+				'Unexpected error when parsing command.\nUse `%smove <from> <to>` to move a song at index `<from>` to index `<to>`\n' % self.config.command_prefix
+				+ 'You can also move the song to `first`, `last`, `top`, `bottom`, `start`, or `end`, which will move the selected song to the first or last position on the playlist.')
+		
 	async def cmd_clear(self, player, author, user_mentions, message, index_str=None):
 		"""
 		Usage:
@@ -1388,107 +1423,120 @@ class MusicBot(discord.Client):
 		Clears the playlist.
 		"""
 		
-		message_content = message.content.strip()
-		args = ' '.join(message_content.split(' ')[1:])
+		arguments = message.content.strip().split(' ')[1:]
 		
 		# If no argument, clear the whole list.
-		if not index_str:
-			player.playlist.clear()
-			return Response('Clear without parameters will soon be deprecated. Use `!clear all` instead.\n:put_litter_in_its_place:', delete_after=30)
-			
-		elif args == "undo":
+		if len(arguments) <= 0:
+			return Response('Clearing without parameters is deprecated. Use `!clear all` instead.', delete_after=30)
+		
+		elif arguments[0].lower() == "undo":
 			if self.last_cleared:
 				for entry in self.last_cleared:
 					player.playlist._add_entry(entry)
 				self.last_cleared = None
-			
+				
 				return Response('Restored songs cleared last time.', delete_after=20)
 			
 			else:
 				return Response('No songs to restore.', delete_after=20)
-						
+		
+		elif arguments[0].lower() == "help":
+			output = ['To clear the entire playlist, use `%(cmd)sclear all`.',
+					  'To undo the last clear command execution, use `%(cmd)sclear undo`.',
+					  'To clear songs at certain indices, use `%(cmd)sclear index <index>`. Examples: `%(cmd)sclear index 1`, `%(cmd)sclear index 3-5, 9, 13`',
+					  'To clear songs whose titles contain certain strings, use `%(cmd)sclear title <string>`; for example, `%(cmd)sclear name xcom`.',
+					  'To clear all songs added by a certain user, mention that user in the clear command: `%(cmd)sclear user @mention`']
+			
+			return Response('\n'.join(output) % {'cmd': self.config.command_prefix}, delete_after=100)
+		
 		else:
-			# Generates closure for evaluating the parameter
-			def make_func_in_range(param: str):
-				if param == "all":
-					def should_delete(index, item):
+			should_delete = None
+			
+			try:
+				if arguments[0].lower() == "all":
+					def func(index, item):
 						return True
 					
-					return should_delete
+					should_delete = func
+				
+				elif arguments[0].lower() == "title":
+					# Title check
+					if len(arguments) <= 1:
+						return Response('Please specify a string for search and delete.', delete_after=30)
 					
-				elif user_mentions:
-					# Delete by user
-					def should_delete(index, item):
-						return any((item.meta.get(author, None) == mention) for mention in user_mentions)
+					else:
+						search = ' '.join(arguments[1:]).lower()
+						
+						def func(index, item):
+							return (search in item.title.lower()) if item else False
+						
+						should_delete = func
+				
+				elif arguments[0].lower() == "index":
+					# Index check
+					if len(arguments) <= 1:
+						return Response('Please specify an index or indices to delete.', delete_after=30)
 					
-					return should_delete
+					# Remove all spaces and split by comma
+					range_params = ''.join(arguments[1:]).split(",")
 					
-				else:
-					try:
-						# See if this is an index range
-						
-						# Remove all spaces and split by comma
-						range_params = param.replace(" ", "").split(",")
-						
-						# Prepare the index list
-						range_entries = []
-						
-						for entry in range_params:
-							hyphen_index = entry.find("-")
-							if hyphen_index == -1:
-								# Single entry
-								min_val = max_val = int(entry)
-							else:
-								# Range entry
-								min_val = int(entry[:hyphen_index])
-								max_val = int(entry[hyphen_index + 1:])
-							
-							range_entries.append(range(min_val - 1, max_val))
-						
-						def should_delete(index, item=None):
-							return any(index in range_entry for range_entry in range_entries)
-						
-						return should_delete
+					# Prepare the index list
+					range_entries = []
 					
-					except ValueError:
-						# Check if the parameter is in quotes
-						if param.startswith('"') and param.endswith('"'):
-							# Strip quotes
-							search = param[1:len(param) - 1]
-							
-							def should_delete(index, item):
-								return (search.lower() in item.title.lower()) if item else False
-							
-							return should_delete
-						
+					for entry in range_params:
+						hyphen_index = entry.find("-")
+						if hyphen_index == -1:
+							# Single entry
+							min_val = max_val = int(entry)
 						else:
-							raise AssertionError
-			
-			# Try to parse parameters
-			try:
-				removed_songs = player.playlist.delete(make_func_in_range(args))
-				self.last_cleared = removed_songs
-				output = ''':put_litter_in_its_place:\nRemoved songs:'''
-				for song in removed_songs:
-					output += '''
-**''' + song.title + '''** added by **''' + song.meta['author'].name + '''**'''
-				return Response(output, delete_after=50)
+							# Range entry
+							min_val = int(entry[:hyphen_index])
+							max_val = int(entry[hyphen_index + 1:])
+						
+						range_entries.append(range(min_val - 1, max_val))
+					
+					def func(index, item):
+						return any(index in range_entry for range_entry in range_entries)
+					
+					should_delete = func
+				
+				elif arguments[0].lower() == "user":
+					if user_mentions:
+						# Delete by user
+						def func(index, item):
+							return any((item.meta['author'].name == mention.name) for mention in user_mentions)
+						
+						should_delete = func
+						
+					else:
+						return Response('Please mention users in your command to clear songs added by that user.')
+				
+				else:
+					return Response('Unknown command parameters.\nTo view usages for the clear command, use `%sclear help`.' % self.config.command_prefix, delete_after=30)
 			
 			except:
 				self.last_error = sys.exc_info()
-				return Response(
-					('''Unexpected error when executing command.\nTo clear the entire playlist, use `%(cmd)sclear all`.
-To clear songs at certain indices, use `%(cmd)sclear <index>`. Examples: `%(cmd)sclear 1`, `%(cmd)sclear 3-5, 9, 13`
-To clear songs whose titles contain certain strings, use `%(cmd)sclear "<string>"`; for example, `%(cmd)sclear "xcom"`.\nTo clear all songs added by a certain user, mention that user in the clear command: `%(cmd)sclear <@mention>`
-To view the error that occurred, use `%(cmd)slasterror`.''' % {'cmd': self.config.command_prefix}))
-	
+				output = ['Unexpected error when executing command.',
+						  'To view usages for the clear command, use `%(cmd)sclear help`.',
+						  'To view the error that occurred, use `%(cmd)slasterror`.']
+				
+				return Response('\n'.join(output) % {'cmd': self.config.command_prefix}, delete_after=40)
+			
+			removed_songs = player.playlist.delete(should_delete)
+			self.last_cleared = removed_songs
+			output = [':put_litter_in_its_place:', 'Removed songs:']
+			for song in removed_songs:
+				output.append('**' + song.title + '** added by **' + song.meta['author'].name + '**')
+			
+			return Response('\n'.join(output), delete_after=50)
+			
 	async def cmd_lasterror(self):
 		if self.last_error:
-			output = Response(self.last_error, delete_after=40)
+			output = Response(self.last_error)
 			self.last_error = None
 			return output
 		else:
-			return Response("No errors detected.")
+			return Response("No errors detected.", delete_after=20)
 	
 	async def cmd_skip(self, player, channel, author, message, permissions, voice_channel):
 		"""

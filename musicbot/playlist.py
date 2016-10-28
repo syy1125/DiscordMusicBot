@@ -27,6 +27,20 @@ class Playlist(EventEmitter):
 
 	def shuffle(self):
 		shuffle(self.entries)
+	
+	def move(self, from_index, to_index):
+		moved_song = self.entries[from_index]
+		
+		# Build new playlist
+		new_entries = deque(islice(self.entries, from_index))
+		new_entries.extend(islice(self.entries, from_index + 1, len(self.entries)))
+		new_entries.insert(to_index, moved_song)
+		
+		# Set the playlist
+		self.entries = new_entries
+		
+		# Return the song moved for reference
+		return moved_song
 
 	def clear(self):
 		self.entries.clear()
