@@ -1427,7 +1427,7 @@ class MusicBot(discord.Client):
 		
 		# If no argument, clear the whole list.
 		if len(arguments) <= 0:
-			return Response('Clearing without parameters is deprecated. Use `!clear all` instead.', delete_after=30)
+			return Response('Clearing without parameters is deprecated. Use `%sclear all` instead.' % self.config.command_prefix, delete_after=30)
 		
 		elif arguments[0].lower() == "undo":
 			if self.last_cleared:
@@ -1454,12 +1454,9 @@ class MusicBot(discord.Client):
 			
 			try:
 				if arguments[0].lower() == "all":
-					def func(index, item):
-						return True
-					
-					should_delete = func
+					should_delete = lambda index, item: True
 				
-				elif arguments[0].lower() == "title":
+				elif arguments[0].lower() == "title" or arguments[0].lower() == "name":
 					# Title check
 					if len(arguments) <= 1:
 						return Response('Please specify a string for search and delete.', delete_after=30)
@@ -1467,11 +1464,8 @@ class MusicBot(discord.Client):
 					else:
 						search = ' '.join(arguments[1:]).lower()
 						
-						def func(index, item):
-							return (search in item.title.lower()) if item else False
+						should_delete = lambda index, item: (search in item.title.lower()) if item else False
 						
-						should_delete = func
-				
 				elif arguments[0].lower() == "index":
 					# Index check
 					if len(arguments) <= 1:
@@ -1495,18 +1489,12 @@ class MusicBot(discord.Client):
 						
 						range_entries.append(range(min_val - 1, max_val))
 					
-					def func(index, item):
-						return any(index in range_entry for range_entry in range_entries)
+					should_delete = lambda index, item: any(index in range_entry for range_entry in range_entries)
 					
-					should_delete = func
-				
 				elif arguments[0].lower() == "user":
 					if user_mentions:
 						# Delete by user
-						def func(index, item):
-							return any((item.meta['author'].name == mention.name) for mention in user_mentions)
-						
-						should_delete = func
+						should_delete = lambda index, item: any((item.meta['author'].name == mention.name) for mention in user_mentions)
 						
 					else:
 						return Response('Please mention users in your command to clear songs added by that user.')
