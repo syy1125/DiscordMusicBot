@@ -1,6 +1,7 @@
 import os
 import sys
 import time
+import copy
 import shlex
 import shutil
 import inspect
@@ -12,6 +13,7 @@ import traceback
 from discord import utils
 from discord.object import Object
 from discord.enums import ChannelType
+from discord.message import Message
 from discord.voice_client import VoiceClient
 from discord.ext.commands.bot import _get_variable
 
@@ -1414,7 +1416,7 @@ class MusicBot(discord.Client):
 			return Response(
 				'Unexpected error when parsing command.\nUse `%smove <from> <to>` to move a song at index `<from>` to index `<to>`\n' % self.config.command_prefix
 				+ 'You can also move the song to `first`, `last`, `top`, `bottom`, `start`, or `end`, which will move the selected song to the first or last position on the playlist.')
-		
+	
 	async def cmd_clear(self, player, author, user_mentions, message, index_str=None):
 		"""
 		Usage:
@@ -1465,7 +1467,7 @@ class MusicBot(discord.Client):
 						search = ' '.join(arguments[1:]).lower()
 						
 						should_delete = lambda index, item: (search in item.title.lower()) if item else False
-						
+				
 				elif arguments[0].lower() == "index":
 					# Index check
 					if len(arguments) <= 1:
@@ -1490,12 +1492,12 @@ class MusicBot(discord.Client):
 						range_entries.append(range(min_val - 1, max_val))
 					
 					should_delete = lambda index, item: any(index in range_entry for range_entry in range_entries)
-					
+				
 				elif arguments[0].lower() == "user":
 					if user_mentions:
 						# Delete by user
 						should_delete = lambda index, item: any((item.meta['author'].name == mention.name) for mention in user_mentions)
-						
+					
 					else:
 						return Response('Please mention users in your command to clear songs added by that user.')
 				
@@ -1517,7 +1519,7 @@ class MusicBot(discord.Client):
 				output.append('**' + song.title + '** added by **' + song.meta['author'].name + '**')
 			
 			return Response('\n'.join(output), delete_after=50)
-			
+	
 	async def cmd_lasterror(self):
 		if self.last_error:
 			output = Response(self.last_error)
@@ -1525,6 +1527,44 @@ class MusicBot(discord.Client):
 			return output
 		else:
 			return Response("No errors detected.", delete_after=20)
+	
+	async def cmd_multiline(self, message):
+		'''
+		@type message: Message
+		'''
+		# Split by lines, one command each line.
+		lines = message.content.split('\n')
+		
+		# Length check
+		if len(lines) > 1:
+			# Set up copy to send to the handler
+			msg = copy.copy(message)  # type: Message
+			
+			lines = lines[1:]
+			
+			await self.safe_send_message(
+				message.channel,
+				'Executing %d line(s) of command.' % len(lines),
+				expire_in=10 if self.config.delete_messages else 0,
+				also_delete=message if self.config.delete_invoking else None
+			)
+			
+			# Async execute all
+			running_commands = []
+			for line in lines:
+				# Substitute in the line and run on message.
+				msg.content = line
+				print('Executing:', line)
+				running_commands.append(self.on_message(msg))
+				
+			# Wait for all to execute
+			for cmd in running_commands:
+				await cmd
+				
+			return Response('Executed %d commands.' % len(lines), delete_after=30)
+		
+		else:
+			return Response('You can put multiple commands on separate lines after `%smultiline` to execute each of them.' % self.config.command_prefix)
 	
 	async def cmd_skip(self, player, channel, author, message, permissions, voice_channel):
 		"""
