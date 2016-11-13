@@ -1537,8 +1537,6 @@ class MusicBot(discord.Client):
 		
 		# Length check
 		if len(lines) > 1:
-			# Set up copy to send to the handler
-			msg = copy.copy(message)  # type: Message
 			
 			lines = lines[1:]
 			
@@ -1552,6 +1550,8 @@ class MusicBot(discord.Client):
 			# Async execute all
 			running_commands = []
 			for line in lines:
+				# Set up copy to send to the handler
+				msg = copy.copy(message)  # type: Message
 				# Substitute in the line and run on message.
 				msg.content = line
 				print('Executing:', line)
