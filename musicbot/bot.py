@@ -1,4 +1,5 @@
 import os
+import re
 import sys
 import time
 import copy
@@ -37,6 +38,8 @@ from .constants import VERSION as BOTVERSION
 from .constants import DISCORD_MSG_CHAR_LIMIT, AUDIO_CACHE_PATH
 
 load_opus_lib()
+
+range_re = re.compile(r'([0-9]+)\-([0-9]+)')
 
 
 class SkipState:
@@ -1417,7 +1420,7 @@ class MusicBot(discord.Client):
 				'Unexpected error when parsing command.\nUse `%smove <from> <to>` to move a song at index `<from>` to index `<to>`\n' % self.config.command_prefix
 				+ 'You can also move the song to `first`, `last`, `top`, `bottom`, `start`, or `end`, which will move the selected song to the first or last position on the playlist.')
 	
-	async def cmd_clear(self, player, author, user_mentions, message, index_str=None):
+	async def cmd_clear(self, player, author, user_mentions, leftover_args):
 		"""
 		Usage:
 			{command_prefix}clear
@@ -1425,13 +1428,11 @@ class MusicBot(discord.Client):
 		Clears the playlist.
 		"""
 		
-		arguments = message.content.strip().split(' ')[1:]
-		
 		# If no argument, clear the whole list.
-		if len(arguments) <= 0:
+		if len(leftover_args) <= 0:
 			return Response('Clearing without parameters is deprecated. Use `%sclear all` instead.' % self.config.command_prefix, delete_after=30)
 		
-		elif arguments[0].lower() == "undo":
+		elif leftover_args[0].lower() == "undo":
 			if self.last_cleared:
 				for entry in self.last_cleared:
 					player.playlist._add_entry(entry)
@@ -1442,7 +1443,7 @@ class MusicBot(discord.Client):
 			else:
 				return Response('No songs to restore.', delete_after=20)
 		
-		elif arguments[0].lower() == "help":
+		elif leftover_args[0].lower() == "help":
 			output = ['To clear the entire playlist, use `%(cmd)sclear all`.',
 					  'To undo the last clear command execution, use `%(cmd)sclear undo`.',
 					  'To clear songs at certain indices, use `%(cmd)sclear index <index>`. Examples: `%(cmd)sclear index 1`, `%(cmd)sclear index 3-5, 9, 13`',
@@ -1455,26 +1456,26 @@ class MusicBot(discord.Client):
 			should_delete = None
 			
 			try:
-				if arguments[0].lower() == "all":
+				if leftover_args[0].lower() == "all":
 					should_delete = lambda index, item: True
 				
-				elif arguments[0].lower() == "title" or arguments[0].lower() == "name":
+				elif leftover_args[0].lower() == "title" or leftover_args[0].lower() == "name":
 					# Title check
-					if len(arguments) <= 1:
+					if len(leftover_args) <= 1:
 						return Response('Please specify a string for search and delete.', delete_after=30)
 					
 					else:
-						search = ' '.join(arguments[1:]).lower()
+						search = ' '.join(leftover_args[1:]).lower()
 						
 						should_delete = lambda index, item: (search in item.title.lower()) if item else False
 				
-				elif arguments[0].lower() == "index":
+				elif leftover_args[0].lower() == "index":
 					# Index check
-					if len(arguments) <= 1:
+					if len(leftover_args) <= 1:
 						return Response('Please specify an index or indices to delete.', delete_after=30)
 					
 					# Remove all spaces and split by comma
-					range_params = ''.join(arguments[1:]).split(",")
+					range_params = ''.join(leftover_args[1:]).split(",")
 					
 					# Prepare the index list
 					range_entries = []
@@ -1493,7 +1494,7 @@ class MusicBot(discord.Client):
 					
 					should_delete = lambda index, item: any(index in range_entry for range_entry in range_entries)
 				
-				elif arguments[0].lower() == "user":
+				elif leftover_args[0].lower() == "user":
 					if user_mentions:
 						# Delete by user
 						should_delete = lambda index, item: any((item.meta['author'].name == mention.name) for mention in user_mentions)
@@ -1556,11 +1557,11 @@ class MusicBot(discord.Client):
 				msg.content = line
 				print('Executing:', line)
 				running_commands.append(self.on_message(msg))
-				
+			
 			# Wait for all to execute
 			for cmd in running_commands:
 				await cmd
-				
+			
 			return Response('Executed %d commands.' % len(lines), delete_after=30)
 		
 		else:
@@ -1723,6 +1724,62 @@ class MusicBot(discord.Client):
 		if not lines:
 			lines.append(
 				'There are no songs queued! Queue something with {}play.'.format(self.config.command_prefix))
+		
+		message = '\n'.join(lines)
+		return Response(message)
+	
+	async def cmd_show(self, player, leftover_args):
+		lines = []
+		
+		if leftover_args[0].isdigit():
+			index = int(leftover_args[0]) - 1
+			# Range check
+			if index < 0 or index >= len(player.playlist):
+				return Response('Index out of range.')
+			
+			indices = [index]
+			
+		else:
+			re_result = range_re.match(leftover_args)
+			if re_result:
+				captured = re_result.groups()
+				start = int(captured[0]) - 1
+				end = int(captured[1]) - 1
+				# Range check
+				if start > end:
+					return Response('Error in range input: {} is greater than {}!'.format(captured[0], captured[1]))
+				if start < 0:
+					start = 0
+				if end >= len(player.playlist):
+					end = len(player.playlist)
+				
+				indices = range(start, end + 1)
+				
+			else:
+				return Response("Parsing error: could not recognize index input.")
+		
+		unlisted = 0
+		andmoretext = '* ... and %s more*' % ('x' * len(player.playlist.entries))
+		
+		playlist = list(iterable=player.playlist)
+		for i in indices:
+			item = playlist[i]
+			if item.meta.get('channel', False) and item.meta.get('author', False):
+				nextline = '`{}.` **{}** added by **{}**'.format(i, item.title, item.meta['author'].name).strip()
+			else:
+				nextline = '`{}.` **{}**'.format(i, item.title).strip()
+			
+			currentlinesum = sum(len(x) + 1 for x in lines)  # +1 is for newline char
+			
+			if currentlinesum + len(nextline) + len(andmoretext) > DISCORD_MSG_CHAR_LIMIT:
+				if currentlinesum + len(andmoretext):
+					unlisted += 1
+					continue
+			
+			lines.append(nextline)
+		
+		if unlisted:
+			lines.append('\n*... and %s more*' % unlisted)
 		
 		message = '\n'.join(lines)
 		return Response(message)
