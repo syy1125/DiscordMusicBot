@@ -1738,7 +1738,7 @@ class MusicBot(discord.Client):
 				return Response('Index out of range.')
 			
 			indices = [index]
-			
+		
 		else:
 			re_result = range_re.match(leftover_args)
 			if re_result:
@@ -1754,7 +1754,7 @@ class MusicBot(discord.Client):
 					end = len(player.playlist)
 				
 				indices = range(start, end + 1)
-				
+			
 			else:
 				return Response("Parsing error: could not recognize index input.")
 		
@@ -1765,9 +1765,9 @@ class MusicBot(discord.Client):
 		for i in indices:
 			item = playlist[i]
 			if item.meta.get('channel', False) and item.meta.get('author', False):
-				nextline = '`{}.` **{}** added by **{}**'.format(i, item.title, item.meta['author'].name).strip()
+				nextline = '`{}.` **{}** added by **{}**'.format(i + 1, item.title, item.meta['author'].name).strip()
 			else:
-				nextline = '`{}.` **{}**'.format(i, item.title).strip()
+				nextline = '`{}.` **{}**'.format(i + 1, item.title).strip()
 			
 			currentlinesum = sum(len(x) + 1 for x in lines)  # +1 is for newline char
 			
