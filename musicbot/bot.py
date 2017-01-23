@@ -1731,6 +1731,9 @@ class MusicBot(discord.Client):
 	async def cmd_show(self, player, leftover_args):
 		lines = []
 		
+		if leftover_args is None or len(leftover_args) == 0:
+			return Response('Please provide the index of the song you want to show.', delete_after=20)
+		
 		if leftover_args[0].isdigit():
 			index = int(leftover_args[0]) - 1
 			# Range check
@@ -1747,7 +1750,7 @@ class MusicBot(discord.Client):
 				end = int(captured[1]) - 1
 				# Range check
 				if start > end:
-					return Response('Error in range input: {} is greater than {}!'.format(captured[0], captured[1]))
+					return Response('Error in range input: {} is greater than {}!'.format(captured[0], captured[1]), delete_after=20)
 				if start < 0:
 					start = 0
 				if end >= len(player.playlist):
@@ -1756,7 +1759,7 @@ class MusicBot(discord.Client):
 				indices = range(start, end + 1)
 			
 			else:
-				return Response("Parsing error: could not recognize index input.")
+				return Response('Parsing error: could not recognize index input.', delete_after=20)
 		
 		unlisted = 0
 		andmoretext = '* ... and %s more*' % ('x' * len(player.playlist.entries))
