@@ -1764,7 +1764,7 @@ class MusicBot(discord.Client):
 		unlisted = 0
 		andmoretext = '* ... and %s more*' % ('x' * len(player.playlist.entries))
 		
-		playlist = list(iterable=player.playlist)
+		playlist = list(iterable=player.playlist.entries)
 		for i in indices:
 			item = playlist[i]
 			if item.meta.get('channel', False) and item.meta.get('author', False):
