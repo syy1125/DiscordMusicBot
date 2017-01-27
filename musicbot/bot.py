@@ -1743,7 +1743,7 @@ class MusicBot(discord.Client):
 			indices = [index]
 		
 		else:
-			re_result = range_re.match(leftover_args)
+			re_result = range_re.match(leftover_args[0])
 			if re_result:
 				captured = re_result.groups()
 				start = int(captured[0]) - 1
@@ -1754,7 +1754,7 @@ class MusicBot(discord.Client):
 				if start < 0:
 					start = 0
 				if end >= len(player.playlist.entries):
-					end = len(player.playlist.entries)
+					end = len(player.playlist.entries) - 1
 				
 				indices = range(start, end + 1)
 			
@@ -1764,7 +1764,7 @@ class MusicBot(discord.Client):
 		unlisted = 0
 		andmoretext = '* ... and %s more*' % ('x' * len(player.playlist.entries))
 		
-		playlist = list(iterable=player.playlist.entries)
+		playlist = list(player.playlist.entries)
 		for i in indices:
 			item = playlist[i]
 			if item.meta.get('channel', False) and item.meta.get('author', False):
