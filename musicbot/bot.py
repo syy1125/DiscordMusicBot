@@ -1737,7 +1737,7 @@ class MusicBot(discord.Client):
 		if leftover_args[0].isdigit():
 			index = int(leftover_args[0]) - 1
 			# Range check
-			if index < 0 or index >= len(player.playlist):
+			if index < 0 or index >= len(player.playlist.entries):
 				return Response('Index out of range.')
 			
 			indices = [index]
@@ -1753,8 +1753,8 @@ class MusicBot(discord.Client):
 					return Response('Error in range input: {} is greater than {}!'.format(captured[0], captured[1]), delete_after=20)
 				if start < 0:
 					start = 0
-				if end >= len(player.playlist):
-					end = len(player.playlist)
+				if end >= len(player.playlist.entries):
+					end = len(player.playlist.entries)
 				
 				indices = range(start, end + 1)
 			
