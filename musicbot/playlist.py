@@ -108,6 +108,7 @@ class Playlist(EventEmitter):
 			info.get('title', 'Untitled'),
 			info.get('duration', 0) or 0,
 			self.downloader.ytdl.prepare_filename(info),
+			normalize=True,
 			**meta
 		)
 		self._add_entry(entry)
@@ -149,6 +150,7 @@ class Playlist(EventEmitter):
 						items.get('title', 'Untitled'),
 						items.get('duration', 0) or 0,
 						self.downloader.ytdl.prepare_filename(items),
+						normalize=True,
 						**meta
 					)
 

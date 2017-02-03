@@ -1,10 +1,13 @@
 import asyncio
 import json
 import os
+import shlex
 import traceback
+import subprocess
 
 from .exceptions import ExtractionError
 from .utils import get_header, md5sum
+from .constants import AUDIO_CACHE_PATH
 
 
 class BasePlaylistEntry:
@@ -72,12 +75,13 @@ class BasePlaylistEntry:
 
 
 class URLPlaylistEntry(BasePlaylistEntry):
-    def __init__(self, playlist, url, title, duration=0, expected_filename=None, **meta):
+    def __init__(self, playlist, url, title, duration=0, expected_filename=None, normalize=False, **meta):
         super().__init__()
 
         self.playlist = playlist
         self.url = url
         self.title = title
+        self.normalize=normalize
         self.duration = duration
         self.expected_filename = expected_filename
         self.meta = meta
@@ -211,6 +215,8 @@ class URLPlaylistEntry(BasePlaylistEntry):
 
         try:
             result = await self.playlist.downloader.extract_info(self.playlist.loop, self.url, download=True)
+            if self.normalize:
+                subprocess.Popen(shlex.split('mp3gain -r {}'.format(self.expected_filename)), cwd=AUDIO_CACHE_PATH).wait()
         except Exception as e:
             raise ExtractionError(e)
 
