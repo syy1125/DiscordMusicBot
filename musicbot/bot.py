@@ -11,6 +11,8 @@ import discord
 import asyncio
 import traceback
 
+from typing import List
+
 from discord import utils
 from discord.object import Object
 from discord.enums import ChannelType
@@ -724,6 +726,59 @@ class MusicBot(discord.Client):
 		
 		print()
 	
+	def generate_index_match_func(self, argsIn: List[str], user_mentions):
+		if argsIn[0].lower() == "all":
+			should_delete = lambda index, item: True
+		
+		elif argsIn[0].lower() == "title" or argsIn[0].lower() == "name":
+			# Title check
+			if len(argsIn) <= 1:
+				return None, Response('Please specify a string for search and delete.', delete_after=30)
+			
+			else:
+				search = ' '.join(argsIn[1:]).lower()
+				
+				should_delete = lambda index, item: (search in item.title.lower()) if item else False
+		
+		elif argsIn[0].lower() == "index":
+			# Index check
+			if len(argsIn) <= 1:
+				return None, Response('Please specify an index or indices to delete.', delete_after=30)
+			
+			# Remove all spaces and split by comma
+			range_params = ''.join(argsIn[1:]).split(",")
+			
+			# Prepare the index list
+			range_entries = []
+			
+			for entry in range_params:
+				hyphen_index = entry.find("-")
+				if hyphen_index == -1:
+					# Single entry
+					min_val = max_val = int(entry)
+				else:
+					# Range entry
+					min_val = int(entry[:hyphen_index])
+					max_val = int(entry[hyphen_index + 1:])
+				
+				range_entries.append(range(min_val - 1, max_val))
+			
+			should_delete = lambda index, item: any(index in range_entry for range_entry in range_entries)
+		
+		elif argsIn[0].lower() == "user":
+			if argsIn:
+				# Delete by user
+				should_delete = lambda index, item: any((item.meta['author'].name == mention.name) for mention in user_mentions)
+			
+			else:
+				return None, Response('Please mention users in your command to clear songs added by that user.')
+		
+		else:
+			return None, Response('Unknown command parameters.\nTo view usages for the clear command, use `%sclear help`.' % self.config.command_prefix, delete_after=30)
+		
+		return should_delete, None
+	
+	
 	# t-t-th-th-that's all folks!
 	
 	async def cmd_help(self, command=None):
@@ -1363,6 +1418,31 @@ class MusicBot(discord.Client):
 		else:
 			raise exceptions.CommandError('Player is not paused.', expire_in=30)
 	
+	async def cmd_repeat(self, player, leftover_args):
+		if len(leftover_args) == 0:
+			player.playlist._add_entry(player.current_entry)
+		else:
+			if type(leftover_args[0]) == 'string' and leftover_args[0].is_digit():
+				try:
+					player.playlist._add_entry(player.playlist.entries[int(leftover_args[0])-1])
+				except:
+					return Response("An error occurred. Check that your index is within bounds.")
+			else:
+				re_result = range_re.match(leftover_args[0])
+				if re_result:
+					captured = re_result.groups()
+					start = int(captured[0]) - 1
+					end = int(captured[1]) - 1
+					
+					if start > end:
+						return Response('Error in range input: {} is greater than {}!'.format(captured[0], captured[1]), delete_after=20)
+					if start < 0:
+						start = 0
+					if end >= len(player.playlist.entries):
+						end = len(player.playlist.entries) - 1
+						
+					player.playlist.entries.extend(iter(enumerate(player.playlist.entries)[start:end]))
+	
 	async def cmd_shuffle(self, channel, player):
 		"""
 		Usage:
@@ -1456,55 +1536,12 @@ class MusicBot(discord.Client):
 			should_delete = None
 			
 			try:
-				if leftover_args[0].lower() == "all":
-					should_delete = lambda index, item: True
-				
-				elif leftover_args[0].lower() == "title" or leftover_args[0].lower() == "name":
-					# Title check
-					if len(leftover_args) <= 1:
-						return Response('Please specify a string for search and delete.', delete_after=30)
-					
-					else:
-						search = ' '.join(leftover_args[1:]).lower()
-						
-						should_delete = lambda index, item: (search in item.title.lower()) if item else False
-				
-				elif leftover_args[0].lower() == "index":
-					# Index check
-					if len(leftover_args) <= 1:
-						return Response('Please specify an index or indices to delete.', delete_after=30)
-					
-					# Remove all spaces and split by comma
-					range_params = ''.join(leftover_args[1:]).split(",")
-					
-					# Prepare the index list
-					range_entries = []
-					
-					for entry in range_params:
-						hyphen_index = entry.find("-")
-						if hyphen_index == -1:
-							# Single entry
-							min_val = max_val = int(entry)
-						else:
-							# Range entry
-							min_val = int(entry[:hyphen_index])
-							max_val = int(entry[hyphen_index + 1:])
-						
-						range_entries.append(range(min_val - 1, max_val))
-					
-					should_delete = lambda index, item: any(index in range_entry for range_entry in range_entries)
-				
-				elif leftover_args[0].lower() == "user":
-					if user_mentions:
-						# Delete by user
-						should_delete = lambda index, item: any((item.meta['author'].name == mention.name) for mention in user_mentions)
-					
-					else:
-						return Response('Please mention users in your command to clear songs added by that user.')
-				
+				closure, response = self.generate_index_match_func(leftover_args, user_mentions)
+				if closure:
+					should_delete = closure
 				else:
-					return Response('Unknown command parameters.\nTo view usages for the clear command, use `%sclear help`.' % self.config.command_prefix, delete_after=30)
-			
+					return response
+				
 			except:
 				self.last_error = sys.exc_info()
 				output = ['Unexpected error when executing command.',
