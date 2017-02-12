@@ -778,7 +778,6 @@ class MusicBot(discord.Client):
 		
 		return should_delete, None
 	
-	
 	# t-t-th-th-that's all folks!
 	
 	async def cmd_help(self, command=None):
@@ -1421,15 +1420,18 @@ class MusicBot(discord.Client):
 	async def cmd_repeat(self, player, leftover_args):
 		if len(leftover_args) == 0:
 			player.playlist._add_entry(player.current_entry)
+			return Response('Appended **%s** to the playlist.' % player.current_entry.title)
+		
 		else:
-			if leftover_args[0].is_digit():
+			if str(leftover_args[0]).isdigit():
 				try:
-					player.playlist._add_entry(player.playlist.entries[int(leftover_args[0])-1])
-					return Response('Done.')
+					player.playlist._add_entry(player.playlist.entries[int(leftover_args[0]) - 1])
+					return Response('Appended **%s** to the playlist.' % player.playlist.entries[int(leftover_args[0]) - 1].title)
 				except:
 					return Response('An error occurred. Check that your index is within bounds.', delete_after=40)
+				
 			else:
-				re_result = range_re.match(leftover_args[0])
+				re_result = range_re.match(str(leftover_args[0]))
 				if re_result:
 					captured = re_result.groups()
 					start = int(captured[0]) - 1
@@ -1441,10 +1443,10 @@ class MusicBot(discord.Client):
 						start = 0
 					if end >= len(player.playlist.entries):
 						end = len(player.playlist.entries) - 1
-						
+					
 					player.playlist.entries.extend(iter(enumerate(player.playlist.entries)[start:end]))
 					
-					return Response('Done.', delete_after=40)
+					return Response('Appended %d songs to the playlist.' % (end - start + 1), delete_after=40)
 				else:
 					return Response('Cannot recognize input.', delete_after=40)
 	
@@ -1546,7 +1548,7 @@ class MusicBot(discord.Client):
 					should_delete = closure
 				else:
 					return response
-				
+			
 			except:
 				self.last_error = sys.exc_info()
 				output = ['Unexpected error when executing command.',
