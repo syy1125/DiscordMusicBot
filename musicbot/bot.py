@@ -1422,11 +1422,12 @@ class MusicBot(discord.Client):
 		if len(leftover_args) == 0:
 			player.playlist._add_entry(player.current_entry)
 		else:
-			if type(leftover_args[0]) == 'string' and leftover_args[0].is_digit():
+			if leftover_args[0].is_digit():
 				try:
 					player.playlist._add_entry(player.playlist.entries[int(leftover_args[0])-1])
+					return Response('Done.')
 				except:
-					return Response('An error occurred. Check that your index is within bounds.')
+					return Response('An error occurred. Check that your index is within bounds.', delete_after=40)
 			else:
 				re_result = range_re.match(leftover_args[0])
 				if re_result:
@@ -1443,9 +1444,9 @@ class MusicBot(discord.Client):
 						
 					player.playlist.entries.extend(iter(enumerate(player.playlist.entries)[start:end]))
 					
-					return Response('Done.')
+					return Response('Done.', delete_after=40)
 				else:
-					return Response('Cannot recognize input.')
+					return Response('Cannot recognize input.', delete_after=40)
 	
 	async def cmd_shuffle(self, channel, player):
 		"""
