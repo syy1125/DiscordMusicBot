@@ -1438,8 +1438,6 @@ class MusicBot(discord.Client):
 					start = int(captured[0]) - 1
 					end = int(captured[1])
 					
-					print(start, end)
-					
 					if start > end:
 						return Response('Error in range input: {} is greater than {}!'.format(captured[0], captured[1]), delete_after=20)
 					if start < 0:
@@ -1449,7 +1447,7 @@ class MusicBot(discord.Client):
 					
 					player.playlist.entries.extend(list(itertools.islice(player.playlist.entries, start, end)))
 					
-					return Response('Appended %d songs to the playlist.' % (end - start + 1), delete_after=40)
+					return Response('Appended %d songs to the playlist.' % (end - start), delete_after=40)
 				else:
 					return Response('Cannot recognize input.', delete_after=40)
 	
