@@ -1435,14 +1435,14 @@ class MusicBot(discord.Client):
 				if re_result:
 					captured = re_result.groups()
 					start = int(captured[0]) - 1
-					end = int(captured[1]) - 1
+					end = int(captured[1])
 					
 					if start > end:
 						return Response('Error in range input: {} is greater than {}!'.format(captured[0], captured[1]), delete_after=20)
 					if start < 0:
 						start = 0
-					if end >= len(player.playlist.entries):
-						end = len(player.playlist.entries) - 1
+					if end > len(player.playlist.entries):
+						end = len(player.playlist.entries)
 					
 					player.playlist.entries.extend(iter(enumerate(player.playlist.entries)[start:end]))
 					
