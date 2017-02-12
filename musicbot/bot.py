@@ -9,6 +9,7 @@ import inspect
 import aiohttp
 import discord
 import asyncio
+import itertools
 import traceback
 
 from typing import List
@@ -1429,15 +1430,15 @@ class MusicBot(discord.Client):
 					return Response('Appended **%s** to the playlist.' % player.playlist.entries[int(leftover_args[0]) - 1].title)
 				except:
 					return Response('An error occurred. Check that your index is within bounds.', delete_after=40)
-				
+			
 			else:
 				re_result = range_re.match(str(leftover_args[0]))
-				print(re_result)
-				print(re_result.groups())
 				if re_result:
 					captured = re_result.groups()
 					start = int(captured[0]) - 1
 					end = int(captured[1])
+					
+					print(start, end)
 					
 					if start > end:
 						return Response('Error in range input: {} is greater than {}!'.format(captured[0], captured[1]), delete_after=20)
@@ -1446,7 +1447,7 @@ class MusicBot(discord.Client):
 					if end > len(player.playlist.entries):
 						end = len(player.playlist.entries)
 					
-					player.playlist.entries.extend(iter(enumerate(player.playlist.entries)[start:end]))
+					player.playlist.entries.extend(enumerate(itertools.islice(player.playlist.entries, start, end)))
 					
 					return Response('Appended %d songs to the playlist.' % (end - start + 1), delete_after=40)
 				else:
