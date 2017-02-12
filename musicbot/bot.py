@@ -1432,6 +1432,8 @@ class MusicBot(discord.Client):
 				
 			else:
 				re_result = range_re.match(str(leftover_args[0]))
+				print(re_result)
+				print(re_result.groups())
 				if re_result:
 					captured = re_result.groups()
 					start = int(captured[0]) - 1
