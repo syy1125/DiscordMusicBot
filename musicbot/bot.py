@@ -1447,7 +1447,7 @@ class MusicBot(discord.Client):
 					if end > len(player.playlist.entries):
 						end = len(player.playlist.entries)
 					
-					player.playlist.entries.extend(enumerate(itertools.islice(player.playlist.entries, start, end)))
+					player.playlist.entries.extend(list(itertools.islice(player.playlist.entries, start, end)))
 					
 					return Response('Appended %d songs to the playlist.' % (end - start + 1), delete_after=40)
 				else:
