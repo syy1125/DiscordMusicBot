@@ -231,7 +231,7 @@ class MusicPlayer(EventEmitter):
 		
 		with await self._play_lock:
 			if self.is_stopped or _continue:
-				if self.repeat:
+				if self.repeat and self._current_entry:
 					self.playlist.add_entry(self._current_entry.url)
 				
 				try:

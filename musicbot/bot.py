@@ -1432,7 +1432,7 @@ class MusicBot(discord.Client):
 				return Response('Unknown parameters. Use `%srepeat` to toggle repeat, `%srepeat on` and `%srepeat off` to turn repeat on and off, respectively.' %
 								(self.config.command_prefix, self.config.command_prefix, self.config.command_prefix))
 		
-		return Response('Repeat is now %s.' % 'on' if player.repeat else 'off')
+		return Response('Repeat is now %s.' % ('on' if player.repeat else 'off'))
 	
 	async def cmd_shuffle(self, channel, player):
 		"""
@@ -1604,7 +1604,10 @@ class MusicBot(discord.Client):
 		"""
 		
 		if player.is_stopped:
-			raise exceptions.CommandError("Can't skip! The player is not playing!", expire_in=20)
+			if len(player.playlist.entries) > 0:
+				player.play()
+			else:
+				raise exceptions.CommandError("Can't skip! The player is not playing!", expire_in=20)
 		
 		if not player.current_entry:
 			if player.playlist.peek():
